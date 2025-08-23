@@ -1,0 +1,19 @@
+name: docker
+
+on:
+  push:
+    paths:
+      - "docker/**"
+      - ".github/workflows/ci-docker.yml"
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [agent, browser-pool, knowledge]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: docker build -t scalenyx-${{ matrix.service }} -f docker/${{ matrix.service }}.Dockerfile .

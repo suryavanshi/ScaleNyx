@@ -1,0 +1,36 @@
+[project]
+name = "scale-nyx"
+version = "0.1.0"
+description = "ScaleNyx AI Infra Agent"
+authors = [{name = "ScaleNyx Team", email = "team@example.com"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "typer[all]",
+    "pydantic",
+    "boto3",
+    "fastapi",
+    "uvicorn",
+    "requests",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+
+[project.scripts]
+infra-agent = "infra_agent.api.cli:app"
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
