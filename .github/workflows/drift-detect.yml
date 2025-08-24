@@ -1,0 +1,45 @@
+name: terraform-drift
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform/live/dev/s3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+      - name: Terraform init
+        run: terraform init -backend=false
+      - name: Terraform plan refresh-only
+        run: terraform plan -refresh-only -input=false -lock=false -out=tfplan
+      - name: Terraform show
+        run: terraform show -json tfplan > plan.json
+      - name: Detect drift
+        id: drift
+        run: |
+          changes=$(jq '.resource_changes | length' plan.json)
+          echo "changes=$changes" >> $GITHUB_OUTPUT
+          if [ "$changes" -gt 0 ]; then
+            echo "Detected drift in $changes resources" > drift.txt
+          else
+            echo "No drift detected" > drift.txt
+          fi
+      - name: Upload plan.json
+        uses: actions/upload-artifact@v3
+        with:
+          name: drift-plan
+          path: infra/terraform/live/dev/s3/plan.json
+      - name: Create issue on drift
+        if: steps.drift.outputs.changes != '0'
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: "Terraform drift detected"
+          content-filepath: infra/terraform/live/dev/s3/drift.txt

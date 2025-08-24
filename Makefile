@@ -2,8 +2,9 @@ dev:
 	bash scripts/dev_bootstrap.sh
 
 test:
-	pre-commit run --all-files
-	pytest
+        pre-commit run --all-files
+        pytest
+        opa test security/opa
 
 fmt:
 	pre-commit run --all-files

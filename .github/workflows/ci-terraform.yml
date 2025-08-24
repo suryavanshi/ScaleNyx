@@ -25,4 +25,38 @@ jobs:
       - name: Terraform validate
         run: terraform validate
       - name: Terraform plan
-        run: terraform plan -input=false -lock=false
+        run: terraform plan -input=false -lock=false -out=tfplan
+      - name: Terraform show
+        run: terraform show -json tfplan > plan.json
+      - name: Install OPA and Conftest
+        run: |
+          curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+          chmod +x opa && sudo mv opa /usr/local/bin/opa
+          curl -L https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz | tar zx -C /usr/local/bin
+      - name: OPA unit tests
+        run: opa test ../../../../../security/opa
+      - name: Conftest policy check
+        run: conftest test plan.json --policy ../../../../../security/opa
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+      - name: Infracost diff
+        run: |
+          infracost diff --path . --format json --out-file /tmp/infracost.json
+          pct=$(jq -r '.summary.totalMonthlyCostPercent // 0' /tmp/infracost.json)
+          echo "Cost percentage diff: ${pct}%"
+          thresh=${INFRACOST_THRESHOLD:-20}
+          if awk "BEGIN {exit !(${pct} > ${thresh})}"; then
+            echo "Cost increase ${pct}% exceeds threshold ${thresh}%" >&2
+            exit 1
+          fi
+      - name: Post Infracost comment
+        uses: infracost/actions/comment@v2
+        with:
+          path: /tmp/infracost.json
+      - name: Upload plan.json
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: infra/terraform/live/dev/s3/plan.json
