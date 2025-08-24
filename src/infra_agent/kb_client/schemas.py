@@ -3,4 +3,7 @@ from pydantic import BaseModel
 
 class SearchResult(BaseModel):
     url: str
-    snippet: str
+    provider: str
+    service: str
+    last_modified: str
+    snippet: str | None = None
