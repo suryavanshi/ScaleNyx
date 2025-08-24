@@ -12,6 +12,8 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "requests",
+    "prometheus-client",
+    "scikit-learn",
 ]
 
 [project.optional-dependencies]
